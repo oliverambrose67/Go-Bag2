@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Identity Survival Kit: Interactive Go-Bag</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            /* Default: Cyberpunk */
+            --neon-blue: #00f3ff;
+            --neon-green: #00ff41;
+            --neon-red: #ff003c;
+            --neon-yellow: #fcee0a;
+            --neon-purple: #b026ff;
+            --dark-bg: #050505;
+            --panel-bg: rgba(16, 20, 24, 0.95);
+            --text-main: #e0e0e0;
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            color: var(--text-main);
+            font-family: 'Rajdhani', sans-serif;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            transition: background-color 0.5s ease;
+            overflow: hidden; 
+        }
+
+        .mono-font { font-family: 'Share Tech Mono', monospace; }
+
+        /* Custom Scrollbar for inner panels */
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #111; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: var(--neon-blue); border-radius: 3px; }
+
+        /* Tab Navigation */
+        .tab-btn {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-bottom: 2px solid transparent;
+            opacity: 0.6;
+        }
+        .tab-btn:hover { opacity: 1; background: rgba(255,255,255,0.05); }
+        .tab-btn.active {
+            opacity: 1;
+            background: linear-gradient(to top, rgba(0, 243, 255, 0.1), transparent);
+            border-bottom: 2px solid var(--neon-blue);
+            color: var(--neon-blue);
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+        }
+        .tab-btn.active-red { border-color: var(--neon-red); color: var(--neon-red); text-shadow: 0 0 10px rgba(255, 0, 60, 0.5); }
+        
+        /* Game Canvas Containers */
+        canvas { display: block; width: 100%; height: 100%; }
+        
+        /* Utility Classes */
+        .glass-panel {
+            background: var(--panel-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+        }
+        
+        .theme-btn {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 1px solid white;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .theme-btn:hover { transform: scale(1.2); }
+
+        /* Animations */
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+        .animate-glow { animation: pulse-glow 2s infinite; }
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="h-16 border-b border-gray-800 bg-black/90 flex items-center justify-between px-6 shrink-0 z-50">
+        <div class="flex items-center gap-3">
+            <i class="fas fa-suitcase text-cyan-400 text-2xl" style="color: var(--neon-blue)"></i>
+            <div>
+                <h1 class="text-xl font-bold tracking-widest text-white uppercase">Identity <span style="color: var(--neon-blue)">Go-Bag</span></h1>
+                <p class="text-[10px] mono-font tracking-widest" style="color: var(--neon-green)">INTERACTIVE TRAINING MODULE V2.1</p>
+            </div>
+        </div>
+        
+        <!-- Tab Navigation -->
+        <nav class="hidden md:flex h-full items-end gap-1 overflow-x-auto">
+            <button onclick="switchTab('shield')" id="tab-shield" class="tab-btn active px-6 py-3 font-bold uppercase text-sm tracking-wider flex items-center gap-2">
+                <i class="fas fa-glasses"></i> Privacy Shield
+            </button>
+            <button onclick="switchTab('alert')" id="tab-alert" class="tab-btn px-6 py-3 font-bold uppercase text-sm tracking-wider flex items-center gap-2 hover:text-yellow-400">
+                <i class="fas fa-crow"></i> Alert System
+            </button>
+            <button onclick="switchTab('cleanup')" id="tab-cleanup" class="tab-btn px-6 py-3 font-bold uppercase text-sm tracking-wider flex items-center gap-2 hover:text-purple-400">
+                <i class="fas fa-trash-arrow-up"></i> Cleanup Tool
+            </button>
+            <button onclick="switchTab('myth')" id="tab-myth" class="tab-btn px-6 py-3 font-bold uppercase text-sm tracking-wider flex items-center gap-2 hover:text-red-400">
+                <i class="fas fa-umbrella"></i> False Security
+            </button>
+            <button onclick="switchTab('resilience')" id="tab-resilience" class="tab-btn px-6 py-3 font-bold uppercase text-sm tracking-wider flex items-center gap-2 hover:text-green-400">
+                <i class="fas fa-seedling"></i> Resilience
+            </button>
+        </nav>
+
+        <!-- Theme Selector -->
+        <div class="flex items-center gap-2 bg-gray-800/50 px-3 py-1 rounded-full border border-gray-700">
+            <span class="text-[10px] mono-font text-gray-400">THEME:</span>
+            <button onclick="setTheme('cyber')" class="theme-btn bg-cyan-500" title="Cyberpunk"></button>
+            <button onclick="setTheme('matrix')" class="theme-btn bg-green-600" title="Matrix"></button>
+            <button onclick="setTheme('vapor')" class="theme-btn bg-pink-500" title="Vaporwave"></button>
+            <button onclick="setTheme('high')" class="theme-btn bg-white" title="High Contrast"></button>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow relative overflow-hidden bg-gray-900" style="background-color: var(--dark-bg)">
+        
+        <!-- Welcome Overlay (Initial State) -->
+        <div id="welcome-screen" class="absolute inset-0 z-40 bg-black/90 flex flex-col items-center justify-center text-center p-6">
+            <div class="max-w-2xl">
+                <i class="fas fa-fingerprint text-6xl mb-6 animate-pulse" style="color: var(--neon-blue)"></i>
+                <h2 class="text-4xl font-bold text-white mb-4">IDENTITY SURVIVAL KIT</h2>
+                <p class="text-gray-400 mb-8 text-lg">Your digital reputation is permanent. Use this interactive trainer to master the 5 essential tools of digital survival.</p>
+                <button onclick="startApp()" class="px-8 py-3 text-black font-bold rounded-sm uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(6,182,212,0.5)]" style="background-color: var(--neon-blue)">
+                    Initialize System
+                </button>
+            </div>
+        </div>
+
+        <!-- TAB 1: PRIVACY SHIELD (X-RAY) -->
+        <section id="view-shield" class="view-panel absolute inset-0 flex flex-col md:flex-row transition-opacity duration-500">
+            <!-- Game Area -->
+            <div class="relative w-full md:w-2/3 h-1/2 md:h-full bg-black overflow-hidden cursor-none group" id="shield-container">
+                <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-0 opacity-30">
+                    <span class="text-gray-600 text-9xl font-bold">PUBLIC</span>
+                </div>
+                <!-- The "Public" Layer -->
+                <div class="absolute inset-0 flex items-center justify-center p-10 text-center select-none">
+                    <div>
+                        <i class="fas fa-user-circle text-8xl text-gray-500 mb-4"></i>
+                        <h2 class="text-3xl font-bold text-white">John Doe</h2>
+                        <p class="text-gray-400">Just a regular student. Loves pizza and video games.</p>
+                        <div class="mt-4 flex justify-center gap-2">
+                            <span class="px-2 py-1 bg-blue-900/30 text-blue-400 text-xs rounded">Student</span>
+                            <span class="px-2 py-1 bg-blue-900/30 text-blue-400 text-xs rounded">Gamer</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- The "Private" Layer (Revealed by mask) -->
+                <div id="private-layer" class="absolute inset-0 flex items-center justify-center p-10 text-center select-none" style="background-color: rgba(var(--neon-blue), 0.9); clip-path: circle(0% at 50% 50%); background: #000; border: 2px solid var(--neon-blue);">
+                    <div class="text-left w-full max-w-md border p-6 bg-black font-mono relative" style="border-color: var(--neon-blue); color: var(--neon-blue)">
+                        <div class="absolute top-0 right-0 p-2 text-xs border-l border-b" style="border-color: var(--neon-blue)">DATA_EXPOSED</div>
+                        <h2 class="text-xl font-bold text-white mb-4 border-b pb-2" style="border-color: var(--neon-blue)">TRUE IDENTITY DATA</h2>
+                        <ul class="space-y-2 text-sm">
+                            <li>> LOCATION: <span class="text-white">34.0522° N, 118.2437° W</span></li>
+                            <li>> IP ADDRESS: <span class="text-white">192.168.1.45</span></li>
+                            <li>> BROWSER: <span class="text-white">Chrome v112 (Outdated)</span></li>
+                            <li>> EMAIL: <span class="text-white">johndoe123@gmail.com</span></li>
+                            <li>> TRACKERS FOUND: <span class="font-bold" style="color: var(--neon-red)">14 Active</span></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Cursor Follower -->
+                <div id="lens-cursor" class="pointer-events-none absolute w-48 h-48 border-2 rounded-full z-50 transform -translate-x-1/2 -translate-y-1/2 hidden group-hover:block backdrop-blur-sm shadow-[0_0_20px_rgba(0,243,255,0.4)] flex items-center justify-center" style="border-color: var(--neon-blue)">
+                    <span class="text-[10px] font-mono mt-20 bg-black/50 px-1" style="color: var(--neon-blue)">DATA FILTER</span>
+                </div>
+                
+                <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 mono-font text-xs bg-black/80 px-4 py-2 rounded border pointer-events-none text-center shadow-lg" style="border-color: var(--neon-blue); color: var(--neon-blue)">
+                    <i class="fas fa-info-circle mr-1"></i> INSTRUCTION: HOVER over the profile to use the X-Ray lens.
+                </div>
+            </div>
+
+            <!-- Info Panel -->
+            <div class="w-full md:w-1/3 h-1/2 md:h-full bg-gray-900 border-l border-gray-800 p-8 overflow-y-auto custom-scroll" style="background-color: var(--panel-bg)">
+                <div class="mb-6">
+                    <span class="mono-font text-xs border px-2 py-1 rounded" style="color: var(--neon-blue); border-color: var(--neon-blue)">ITEM: AVIATOR SUNGLASSES</span>
+                    <h2 class="text-3xl font-bold text-white mt-2 mb-1">Privacy Shield</h2>
+                    <h3 class="text-gray-400 text-lg">Concept: Selective Visibility</h3>
+                </div>
+                <p class="text-gray-300 leading-relaxed mb-6">
+                    A wall blocks everything, but sunglasses just filter the light. You don't have to be invisible to be private; you just need to tint the glass.
+                </p>
+                <div class="bg-gray-800/50 p-4 rounded border-l-4 mb-6" style="border-color: var(--neon-blue)">
+                    <h4 class="font-bold text-sm uppercase mb-2" style="color: var(--neon-blue)">Why It Matters</h4>
+                    <p class="text-sm text-gray-400">Total invisibility is impossible. The goal is to curate your digital reflection so the world only sees what you explicitly choose to reveal, protecting your metadata.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: ALERT SYSTEM (GAME) -->
+        <section id="view-alert" class="view-panel absolute inset-0 hidden flex-col md:flex-row">
+            <!-- Game Canvas -->
+            <div class="relative w-full md:w-2/3 h-1/2 md:h-full bg-gray-900 border-r border-gray-800">
+                <canvas id="alertCanvas"></canvas>
+                <div id="alert-ui" class="absolute top-4 left-4 right-4 flex justify-between pointer-events-none">
+                    <div class="bg-black/50 p-2 rounded border border-yellow-500/30 text-yellow-400 font-mono">
+                        THREATS BLOCKED: <span id="score-val" class="text-white font-bold">0</span>
+                    </div>
+                    <div class="bg-black/50 p-2 rounded border border-red-500/30 text-red-400 font-mono">
+                        CANARY STATUS: <span id="health-val" class="font-bold" style="color: var(--neon-green)">SINGING</span>
+                    </div>
+                </div>
+                <div id="alert-start" class="absolute inset-0 flex items-center justify-center bg-black/60 z-10 p-4">
+                    <!-- Populated via JS -->
+                </div>
+            </div>
+
+            <!-- Info Panel -->
+            <div class="w-full md:w-1/3 h-1/2 md:h-full bg-gray-900 p-8 overflow-y-auto custom-scroll" style="background-color: var(--panel-bg)">
+                <div class="mb-6">
+                    <span class="mono-font text-xs border px-2 py-1 rounded" style="color: var(--neon-yellow); border-color: var(--neon-yellow)">ITEM: CERAMIC CANARY</span>
+                    <h2 class="text-3xl font-bold text-white mt-2 mb-1">Alert System</h2>
+                    <h3 class="text-gray-400 text-lg">Concept: Early Warning</h3>
+                </div>
+                <p class="text-gray-300 leading-relaxed mb-6">
+                    In coal mines, canaries stopped singing before the air became toxic. In digital life, your "gut feeling" is your canary.
+                </p>
+                <div class="bg-gray-800/50 p-4 rounded border-l-4" style="border-color: var(--neon-yellow)">
+                    <h4 class="font-bold text-sm uppercase mb-2" style="color: var(--neon-yellow)">The Game</h4>
+                    <p class="text-sm text-gray-400">Phishing emails, suspicious DMs, and scams are falling. Click the red threats to block them before they silence the canary. Ignore the safe green data packets.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: CLEANUP TOOL (VACUUM) -->
+        <section id="view-cleanup" class="view-panel absolute inset-0 hidden flex-col md:flex-row">
+            <!-- Interaction Area -->
+            <div class="relative w-full md:w-2/3 h-1/2 md:h-full bg-gray-900 cursor-crosshair">
+                <canvas id="vacuumCanvas"></canvas>
+                
+                <!-- The Bag UI -->
+                <div class="absolute bottom-8 right-8 w-32 bg-gray-800 border-2 rounded-lg p-3 shadow-lg pointer-events-none" style="border-color: var(--neon-purple)">
+                    <p class="text-xs font-mono mb-1 text-center" style="color: var(--neon-purple)">SERVER STORAGE</p>
+                    <div class="w-full h-24 bg-black rounded relative overflow-hidden">
+                        <div id="vacuum-bag-fill" class="absolute bottom-0 left-0 w-full transition-all duration-100" style="height: 0%; background-color: var(--neon-purple)"></div>
+                        <!-- Texture overlay -->
+                        <div class="absolute inset-0 opacity-20 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjZmZmIi8+CjxyZWN0IHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGZpbGw9IiMwMDAiLz4KPC9zdmc+')]"></div>
+                    </div>
+                    <p id="vacuum-text" class="text-[10px] text-center mt-1 text-gray-400">0% Full</p>
+                </div>
+
+                <div class="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black/80 px-4 py-2 rounded text-xs mono-font pointer-events-none border w-3/4 max-w-md text-center shadow-lg" style="border-color: var(--neon-purple); color: var(--neon-purple)">
+                    <i class="fas fa-hand-pointer mr-1"></i> INSTRUCTION: CLICK & DRAG to vacuum the data dust. Watch the server storage fill up.
+                </div>
+            </div>
+
+            <!-- Info Panel -->
+            <div class="w-full md:w-1/3 h-1/2 md:h-full bg-gray-900 p-8 overflow-y-auto custom-scroll" style="background-color: var(--panel-bg)">
+                <div class="mb-6">
+                    <span class="mono-font text-xs border px-2 py-1 rounded" style="color: var(--neon-purple); border-color: var(--neon-purple)">ITEM: HANDHELD VACUUM</span>
+                    <h2 class="text-3xl font-bold text-white mt-2 mb-1">Cleanup Tool</h2>
+                    <h3 class="text-gray-400 text-lg">Concept: Illusion of Deletion</h3>
+                </div>
+                <p class="text-gray-300 leading-relaxed mb-6">
+                    A vacuum clears the mess off the floor, but it stores the dirt inside the machine. Deleting a post removes it from your profile (the floor), but the data remains on the server.
+                </p>
+                <div class="bg-gray-800/20 p-4 rounded border" style="border-color: var(--neon-purple)">
+                    <i class="fas fa-database mb-2" style="color: var(--neon-purple)"></i>
+                    <p class="text-sm italic" style="color: var(--neon-purple)">"The internet is written in ink, not pencil."</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 4: MYTH (UMBRELLA) -->
+        <section id="view-myth" class="view-panel absolute inset-0 hidden flex-col md:flex-row">
+            <!-- Visualizer -->
+            <div class="relative w-full md:w-2/3 h-1/2 md:h-full bg-gray-900 overflow-hidden">
+                <canvas id="rainCanvas"></canvas>
+                
+                <!-- Instruction -->
+                <div class="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black/80 px-4 py-2 rounded text-gray-300 text-xs mono-font pointer-events-none border border-gray-700 text-center w-3/4 max-w-md shadow-lg z-20">
+                    <i class="fas fa-flask mr-1"></i> INSTRUCTION: Toggle 'Incognito Mode' below to see if it stops the 'Data Rain'.
+                </div>
+
+                <!-- Controls -->
+                <div class="absolute bottom-10 left-1/2 transform -translate-x-1/2 flex flex-col items-center gap-4 z-10">
+                    <button id="toggle-incognito" onclick="toggleIncognito()" class="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-full shadow-lg border border-gray-500 flex items-center gap-2 transition-all">
+                        <i class="fas fa-user-secret"></i> <span>ENABLE INCOGNITO MODE</span>
+                    </button>
+                    <p id="incognito-status" class="text-xs font-mono text-gray-500 bg-black/80 px-2 py-1 rounded">STATUS: STANDARD BROWSING</p>
+                </div>
+            </div>
+
+            <!-- Info Panel -->
+            <div class="w-full md:w-1/3 h-1/2 md:h-full bg-gray-900 p-8 border-l border-red-900/30 overflow-y-auto custom-scroll" style="background-color: var(--panel-bg)">
+                <div class="mb-6">
+                    <span class="mono-font text-xs border px-2 py-1 rounded" style="color: var(--neon-red); border-color: var(--neon-red)">ITEM: MESH UMBRELLA</span>
+                    <h2 class="text-3xl font-bold text-white mt-2 mb-1">False Security</h2>
+                    <h3 class="text-lg" style="color: var(--neon-red)">Myth: "Incognito Hides Me"</h3>
+                </div>
+                <div class="bg-gray-900/50 p-5 rounded-lg border mb-6" style="border-color: var(--neon-red)">
+                    <h4 class="font-bold uppercase text-sm mb-2" style="color: var(--neon-red)"><i class="fas fa-times-circle mr-2"></i>The Reality</h4>
+                    <p class="text-sm text-gray-300 leading-relaxed">
+                        Incognito mode is like a mesh umbrella. It looks like protection, but it's full of holes. It stops your <em>device</em> from saving history, but your ISP, school network, and websites can still see everything (the rain).
+                    </p>
+                </div>
+                <p class="text-xs text-gray-500 mono-font">TRY THE SIMULATION: Turn on Incognito mode and watch how the "Tracker Rain" (Red) behaves.</p>
+            </div>
+        </section>
+
+        <!-- TAB 5: RESILIENCE (GARDEN) -->
+        <section id="view-resilience" class="view-panel absolute inset-0 hidden flex-col md:flex-row">
+            <!-- Game -->
+            <div class="relative w-full md:w-2/3 h-1/2 md:h-full bg-black cursor-pointer" id="garden-container" onclick="plantSeed(event)">
+                <canvas id="gardenCanvas"></canvas>
+                
+                <!-- Resilience Controls -->
+                <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex gap-4 bg-black/80 p-2 rounded-full border border-gray-700 z-20">
+                    <button onclick="setPlantMode('good', event)" id="btn-plant-good" class="px-4 py-2 rounded-full font-bold text-xs uppercase flex items-center gap-2 border-2 transition-all bg-green-900/50 border-green-500 text-green-400">
+                        <i class="fas fa-seedling"></i> Positive Content
+                    </button>
+                    <button onclick="setPlantMode('bad', event)" id="btn-plant-bad" class="px-4 py-2 rounded-full font-bold text-xs uppercase flex items-center gap-2 border-2 transition-all border-transparent text-gray-500 hover:text-red-400 hover:border-red-900/50">
+                        <i class="fas fa-biohazard"></i> Negative Content
+                    </button>
+                </div>
+
+                <div class="absolute top-6 left-6 bg-black/60 p-4 rounded border-l-2 border-green-500 pointer-events-none select-none w-64">
+                    <h3 class="font-bold text-sm text-white">REPUTATION SCORE</h3>
+                    <div class="w-full h-4 bg-gray-800 rounded mt-2 overflow-hidden border border-gray-600 relative">
+                        <!-- Center marker -->
+                        <div class="absolute left-1/2 top-0 bottom-0 w-0.5 bg-white z-10 opacity-50"></div>
+                        <div id="rep-bar" class="h-full transition-all duration-500" style="width: 50%; background-color: var(--neon-green)"></div>
+                    </div>
+                    <p id="rep-text" class="text-xs text-right mt-1 text-gray-400">Status: Neutral</p>
+                </div>
+                
+                <div class="absolute top-6 right-6 bg-black/60 p-2 rounded text-xs text-gray-400 mono-font">
+                   CLICK to Plant <br>
+                   <span class="text-green-400">Green = Repair</span> <br>
+                   <span class="text-red-500">Red = Damage</span>
+                </div>
+            </div>
+
+            <!-- Info Panel -->
+            <div class="w-full md:w-1/3 h-1/2 md:h-full bg-gray-900 p-8 overflow-y-auto custom-scroll" style="background-color: var(--panel-bg)">
+                <div class="mb-6">
+                    <span class="mono-font text-xs border px-2 py-1 rounded" style="color: var(--neon-green); border-color: var(--neon-green)">ITEM: WILDFLOWER SEEDS</span>
+                    <h2 class="text-3xl font-bold text-white mt-2 mb-1">Resilience</h2>
+                    <h3 class="text-gray-400 text-lg">Concept: Regrowth</h3>
+                </div>
+                <p class="text-gray-300 leading-relaxed mb-6">
+                    If your digital identity is scorched by a hack or a mistake, you can't un-burn the forest. But you can plant new seeds.
+                </p>
+                <div class="bg-gray-800/50 p-4 rounded border-l-4" style="border-color: var(--neon-green)">
+                    <h4 class="font-bold text-sm uppercase mb-2" style="color: var(--neon-green)">Strategy</h4>
+                    <p class="text-sm text-gray-400">Bury negative search results by consistently creating positive, authentic content. Over time, the flowers cover the scorched earth.</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // --- GLOBAL STATE ---
+        let currentTab = 'shield';
+        let animationFrameId;
+        
+        // --- THEME LOGIC ---
+        function setTheme(theme) {
+            const root = document.documentElement;
+            
+            if (theme === 'cyber') {
+                root.style.setProperty('--neon-blue', '#00f3ff');
+                root.style.setProperty('--neon-green', '#00ff41');
+                root.style.setProperty('--neon-red', '#ff003c');
+                root.style.setProperty('--neon-yellow', '#fcee0a');
+                root.style.setProperty('--neon-purple', '#b026ff');
+                root.style.setProperty('--dark-bg', '#050505');
+                root.style.setProperty('--panel-bg', 'rgba(16, 20, 24, 0.95)');
+                root.style.setProperty('--text-main', '#e0e0e0');
+            } else if (theme === 'matrix') {
+                root.style.setProperty('--neon-blue', '#00cc00'); // Green
+                root.style.setProperty('--neon-green', '#33ff33'); // Bright Green
+                root.style.setProperty('--neon-red', '#004400'); // Dark Green
+                root.style.setProperty('--neon-yellow', '#ccffcc'); // Pale Green
+                root.style.setProperty('--neon-purple', '#008800'); // Mid Green
+                root.style.setProperty('--dark-bg', '#001100'); // Very Dark Green
+                root.style.setProperty('--panel-bg', 'rgba(0, 20, 0, 0.95)');
+                root.style.setProperty('--text-main', '#aaffaa');
+            } else if (theme === 'vapor') {
+                root.style.setProperty('--neon-blue', '#00ffff'); // Cyan
+                root.style.setProperty('--neon-green', '#ff00ff'); // Magenta
+                root.style.setProperty('--neon-red', '#ff9900'); // Orange
+                root.style.setProperty('--neon-yellow', '#ffff00'); // Yellow
+                root.style.setProperty('--neon-purple', '#9900ff'); // Purple
+                root.style.setProperty('--dark-bg', '#1a0b2e'); // Deep Purple
+                root.style.setProperty('--panel-bg', 'rgba(40, 10, 60, 0.9)');
+                root.style.setProperty('--text-main', '#ffccff');
+            } else if (theme === 'high') {
+                root.style.setProperty('--neon-blue', '#0000ff'); 
+                root.style.setProperty('--neon-green', '#008800');
+                root.style.setProperty('--neon-red', '#ff0000');
+                root.style.setProperty('--neon-yellow', '#cccc00');
+                root.style.setProperty('--neon-purple', '#880088');
+                root.style.setProperty('--dark-bg', '#ffffff');
+                root.style.setProperty('--panel-bg', '#f0f0f0');
+                root.style.setProperty('--text-main', '#000000');
+            }
+        }
+
+        // --- INIT ---
+        function startApp() {
+            document.getElementById('welcome-screen').style.display = 'none';
+            switchTab('shield');
+        }
+
+        // --- TAB SWITCHER ---
+        function switchTab(tabId) {
+            // 1. Stop Animation Loop
+            cancelAnimationFrame(animationFrameId);
+            
+            // 2. Global Reset Logic for ALL games
+            resetAllGames();
+
+            // 3. UI Updates
+            document.querySelectorAll('.view-panel').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => {
+                el.classList.remove('active', 'active-red');
+                if(el.id === `tab-myth` && tabId === 'myth') {
+                    el.classList.add('active-red');
+                } else if(el.id === `tab-${tabId}`) {
+                    el.classList.add('active');
+                }
+            });
+
+            // 4. Show new view
+            const newView = document.getElementById(`view-${tabId}`);
+            newView.classList.remove('hidden');
+            newView.style.opacity = '0';
+            setTimeout(() => newView.style.opacity = '1', 50);
+
+            // 5. Initialize specific logic
+            if (tabId === 'shield') initShield();
+            if (tabId === 'alert') initAlert();
+            if (tabId === 'cleanup') initVacuum();
+            if (tabId === 'myth') initMyth();
+            if (tabId === 'resilience') initResilience();
+        }
+
+        function resetAllGames() {
+            // Reset Vacuum
+            trashCollected = 0;
+            dustParticles = [];
+            
+            // Reset Myth
+            drops = [];
+            isIncognito = false;
+            // Reset Myth UI
+            const incognitoBtn = document.getElementById('toggle-incognito');
+            const incognitoStat = document.getElementById('incognito-status');
+            if(incognitoBtn) {
+                incognitoBtn.innerHTML = '<i class="fas fa-user-secret"></i> <span>ENABLE INCOGNITO MODE</span>';
+                incognitoBtn.className = "px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-full shadow-lg border border-gray-500 flex items-center gap-2 transition-all";
+                incognitoStat.innerText = "STATUS: STANDARD BROWSING";
+                incognitoStat.className = "text-xs font-mono text-gray-500 bg-black/80 px-2 py-1 rounded";
+            }
+
+            // Reset Resilience
+            plants = [];
+            reputation = 50; 
+            plantMode = 'good';
+        }
+
+        // --- 1. SHIELD LOGIC ---
+        function initShield() {
+            const container = document.getElementById('shield-container');
+            const layer = document.getElementById('private-layer');
+            const lens = document.getElementById('lens-cursor');
+
+            function moveLens(e) {
+                const rect = container.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                lens.style.left = x + 'px';
+                lens.style.top = y + 'px';
+                layer.style.clipPath = `circle(100px at ${x}px ${y}px)`;
+            }
+            container.addEventListener('mousemove', moveLens);
+        }
+
+        // --- 2. ALERT GAME LOGIC ---
+        let alertState = { items: [], score: 0, health: 100, active: false, cooldown: 0 };
+        
+        function startAlertGame() {
+            document.getElementById('alert-start').style.display = 'none';
+            alertState = { items: [], score: 0, health: 100, active: true, cooldown: 0 };
+            loopAlert();
+        }
+
+        function initAlert() {
+            const canvas = document.getElementById('alertCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Reset UI for Alert
+            const startOverlay = document.getElementById('alert-start');
+            startOverlay.style.display = 'flex';
+            startOverlay.innerHTML = `
+                <div class="text-center">
+                    <p class="text-yellow-400 mb-4 font-mono text-sm"><i class="fas fa-crosshairs"></i> MISSION: Protect the Canary</p>
+                    <p class="text-gray-300 mb-6 text-sm max-w-xs mx-auto">Click the <span class="text-red-500 font-bold">RED THREATS</span> to block them.<br>Avoid the <span class="text-green-400">GREEN LOCKS</span>.</p>
+                    <button onclick="startAlertGame()" class="px-6 py-2 bg-yellow-600 hover:bg-yellow-500 text-black font-bold uppercase rounded shadow-lg shadow-yellow-500/20">Start Threat Detection</button>
+                </div>
+            `;
+            alertState.active = false;
+            alertState.items = [];
+            alertState.cooldown = 0;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const resize = () => {
+                if (canvas.parentElement) {
+                    canvas.width = canvas.parentElement.offsetWidth;
+                    canvas.height = canvas.parentElement.offsetHeight;
+                }
+            };
+            window.addEventListener('resize', resize);
+            resize();
+
+            canvas.onmousemove = (e) => {
+                if(!alertState.active) { canvas.style.cursor = 'default'; return; }
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                let hovering = false;
+                for (let item of alertState.items) {
+                    const dist = Math.hypot(x - item.x, y - item.y);
+                    if (dist < 40 && item.type === 'bad') { hovering = true; break; }
+                }
+                canvas.style.cursor = hovering ? 'pointer' : 'crosshair';
+            };
+
+            canvas.onclick = (e) => {
+                if(!alertState.active) return;
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                for (let i = alertState.items.length - 1; i >= 0; i--) {
+                    let item = alertState.items[i];
+                    const dist = Math.hypot(x - item.x, y - item.y);
+                    if (dist < 40 && item.type === 'bad') {
+                        alertState.items.splice(i, 1);
+                        alertState.score += 10;
+                        document.getElementById('score-val').innerText = alertState.score;
+                        break;
+                    }
+                }
+            };
+        }
+
+        function loopAlert() {
+            if (!alertState.active) return;
+            const canvas = document.getElementById('alertCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            if (alertState.cooldown > 0) alertState.cooldown--;
+
+            if (alertState.cooldown <= 0 && alertState.items.length < 5 && Math.random() < 0.02) {
+                const speedBoost = Math.min(3, alertState.score / 100);
+                alertState.items.push({
+                    x: Math.random() * (canvas.width - 60) + 30,
+                    y: -50,
+                    speed: (1.5 + speedBoost) + Math.random() * 1,
+                    type: Math.random() > 0.4 ? 'bad' : 'good'
+                });
+                alertState.cooldown = 40;
+            }
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height - 50);
+            ctx.lineTo(canvas.width, canvas.height - 50);
+            ctx.strokeStyle = '#333';
+            ctx.setLineDash([5, 5]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            for (let i = alertState.items.length - 1; i >= 0; i--) {
+                let item = alertState.items[i];
+                item.y += item.speed;
+
+                ctx.font = '36px FontAwesome';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                if (item.type === 'bad') {
+                    ctx.fillStyle = '#ff3333';
+                    ctx.shadowBlur = 10; ctx.shadowColor = "red";
+                    ctx.fillText('\uf0e0', item.x, item.y);
+                    ctx.shadowBlur = 0;
+                } else {
+                    ctx.fillStyle = '#33ff33';
+                    ctx.fillText('\uf023', item.x, item.y);
+                }
+
+                if (item.y > canvas.height - 50) {
+                    if (item.type === 'bad') {
+                        alertState.health -= 20;
+                        document.getElementById('health-val').innerText = alertState.health + '%';
+                        document.getElementById('health-val').style.color = 'red';
+                    }
+                    alertState.items.splice(i, 1);
+                }
+            }
+
+            if (alertState.health <= 0) {
+                alertState.active = false;
+                ctx.fillStyle = 'rgba(0,0,0,0.8)';
+                ctx.fillRect(0,0,canvas.width, canvas.height);
+                ctx.fillStyle = 'red';
+                ctx.font = '30px Rajdhani';
+                ctx.textAlign = 'center';
+                ctx.fillText("SYSTEM COMPROMISED", canvas.width/2, canvas.height/2);
+                document.getElementById('alert-start').style.display = 'flex';
+                document.getElementById('alert-start').innerHTML = '<button onclick="startAlertGame()" class="px-6 py-2 bg-red-600 text-white font-bold uppercase rounded">Retry</button>';
+                return;
+            }
+            animationFrameId = requestAnimationFrame(loopAlert);
+        }
+
+        // --- 3. VACUUM LOGIC ---
+        let dustParticles = [];
+        let trashCollected = 0;
+
+        function initVacuum() {
+            const canvas = document.getElementById('vacuumCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            const resize = () => {
+                if (canvas.parentElement) {
+                    canvas.width = canvas.parentElement.offsetWidth;
+                    canvas.height = canvas.parentElement.offsetHeight;
+                    spawnDust();
+                }
+            };
+            window.addEventListener('resize', resize);
+            resize();
+
+            let isDragging = false;
+            canvas.onmousedown = () => isDragging = true;
+            canvas.onmouseup = () => isDragging = false;
+            canvas.onmousemove = (e) => {
+                if (!isDragging) return;
+                const rect = canvas.getBoundingClientRect();
+                const mx = e.clientX - rect.left;
+                const my = e.clientY - rect.top;
+                for(let i=dustParticles.length-1; i>=0; i--) {
+                    let d = dustParticles[i];
+                    let dist = Math.hypot(mx-d.x, my-d.y);
+                    if(dist < 40) {
+                        dustParticles.splice(i, 1);
+                        trashCollected++;
+                        updateBagUI();
+                    }
+                }
+                drawVacuum();
+            };
+            drawVacuum();
+        }
+
+        function spawnDust() {
+            const canvas = document.getElementById('vacuumCanvas');
+            dustParticles = [];
+            for(let i=0; i<300; i++) {
+                dustParticles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    size: Math.random() * 3 + 1,
+                    color: Math.random() > 0.5 ? '#888' : '#555'
+                });
+            }
+            trashCollected = 0;
+            updateBagUI();
+        }
+
+        function updateBagUI() {
+            const max = 300;
+            const pct = Math.min(100, (trashCollected / max) * 100);
+            document.getElementById('vacuum-bag-fill').style.height = pct + '%';
+            document.getElementById('vacuum-text').innerText = Math.floor(pct) + '% Full';
+        }
+
+        function drawVacuum() {
+            const canvas = document.getElementById('vacuumCanvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0,0,canvas.width, canvas.height);
+            dustParticles.forEach(d => {
+                ctx.fillStyle = d.color;
+                ctx.beginPath();
+                ctx.arc(d.x, d.y, d.size, 0, Math.PI*2);
+                ctx.fill();
+            });
+        }
+
+        // --- 4. MYTH LOGIC ---
+        let drops = [];
+        let isIncognito = false;
+
+        function initMyth() {
+            const canvas = document.getElementById('rainCanvas');
+            const resize = () => {
+                if(canvas.parentElement) {
+                    canvas.width = canvas.parentElement.offsetWidth;
+                    canvas.height = canvas.parentElement.offsetHeight;
+                }
+            };
+            window.addEventListener('resize', resize);
+            resize();
+            loopRain();
+        }
+
+        function toggleIncognito() {
+            isIncognito = !isIncognito;
+            const btn = document.getElementById('toggle-incognito');
+            const stat = document.getElementById('incognito-status');
+            
+            if(isIncognito) {
+                btn.innerHTML = '<i class="fas fa-times"></i> <span>DISABLE INCOGNITO</span>';
+                btn.className = "px-6 py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-full shadow-lg border border-red-400 flex items-center gap-2 transition-all";
+                stat.innerText = "STATUS: FALSE SECURITY ACTIVE";
+                stat.className = "text-xs font-mono text-red-400 bg-black/80 px-2 py-1 rounded border border-red-500";
+            } else {
+                btn.innerHTML = '<i class="fas fa-user-secret"></i> <span>ENABLE INCOGNITO MODE</span>';
+                btn.className = "px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-full shadow-lg border border-gray-500 flex items-center gap-2 transition-all";
+                stat.innerText = "STATUS: STANDARD BROWSING";
+                stat.className = "text-xs font-mono text-gray-500 bg-black/80 px-2 py-1 rounded";
+            }
+        }
+
+        function loopRain() {
+            const canvas = document.getElementById('rainCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            if(Math.random() < 0.5) {
+                drops.push({
+                    x: Math.random() * canvas.width,
+                    y: -20,
+                    speed: 5 + Math.random() * 5,
+                    isTracker: isIncognito
+                });
+            }
+
+            ctx.clearRect(0,0,canvas.width, canvas.height);
+            const cx = canvas.width / 2;
+            const cy = canvas.height - 100;
+            
+            if(isIncognito) {
+                ctx.beginPath();
+                ctx.arc(cx, cy, 100, Math.PI, 0);
+                ctx.strokeStyle = '#555';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                for(let i=0; i<100; i+=20) {
+                   ctx.moveTo(cx - 100 + i, cy);
+                   ctx.lineTo(cx - 80 + i, cy - 80); 
+                   ctx.stroke();
+                }
+            }
+            
+            ctx.fillStyle = getComputedStyle(document.body).color; // Adaptive user color
+            ctx.beginPath();
+            ctx.arc(cx, cy + 30, 20, 0, Math.PI*2);
+            ctx.fill();
+            ctx.fillRect(cx - 20, cy + 50, 40, 60);
+
+            for(let i=drops.length-1; i>=0; i--) {
+                let d = drops[i];
+                d.y += d.speed;
+
+                ctx.beginPath();
+                // Rain color varies by theme if standard
+                const rainColor = getComputedStyle(document.documentElement).getPropertyValue('--neon-blue');
+                const dangerColor = getComputedStyle(document.documentElement).getPropertyValue('--neon-red');
+                
+                ctx.fillStyle = d.isTracker ? dangerColor : rainColor;
+                ctx.font = d.isTracker ? '10px monospace' : 'normal';
+                if(d.isTracker) {
+                    ctx.fillText('ID', d.x, d.y);
+                } else {
+                    ctx.fillRect(d.x, d.y, 2, 10);
+                }
+
+                let hitUmbrella = Math.hypot(d.x - cx, d.y - cy) < 100 && d.y < cy && d.y > cy - 100;
+
+                if (isIncognito && hitUmbrella) {
+                    // Pass through
+                } else if (!isIncognito && d.y > cy && Math.abs(d.x - cx) < 30) {
+                    d.y = canvas.height + 10; 
+                }
+                
+                if (d.y > canvas.height) drops.splice(i, 1);
+            }
+            animationFrameId = requestAnimationFrame(loopRain);
+        }
+
+        // --- 5. RESILIENCE LOGIC ---
+        let plants = [];
+        let reputation = 50; // 0 to 100
+        let plantMode = 'good';
+
+        function initResilience() {
+            const canvas = document.getElementById('gardenCanvas');
+            const resize = () => {
+                if (canvas.parentElement) {
+                    canvas.width = canvas.parentElement.offsetWidth;
+                    canvas.height = canvas.parentElement.offsetHeight;
+                    drawGarden();
+                }
+            };
+            window.addEventListener('resize', resize);
+            resize();
+            updateRepUI();
+        }
+
+        function setPlantMode(mode, e) {
+            e.stopPropagation();
+            plantMode = mode;
+            const btnGood = document.getElementById('btn-plant-good');
+            const btnBad = document.getElementById('btn-plant-bad');
+            
+            if(mode === 'good') {
+                btnGood.className = "px-4 py-2 rounded-full font-bold text-xs uppercase flex items-center gap-2 border-2 transition-all bg-green-900/50 border-green-500 text-green-400 scale-110 shadow-[0_0_10px_rgba(0,255,0,0.5)]";
+                btnBad.className = "px-4 py-2 rounded-full font-bold text-xs uppercase flex items-center gap-2 border-2 transition-all border-transparent text-gray-500 hover:text-red-400 hover:border-red-900/50";
+            } else {
+                btnBad.className = "px-4 py-2 rounded-full font-bold text-xs uppercase flex items-center gap-2 border-2 transition-all bg-red-900/50 border-red-500 text-red-400 scale-110 shadow-[0_0_10px_rgba(255,0,0,0.5)]";
+                btnGood.className = "px-4 py-2 rounded-full font-bold text-xs uppercase flex items-center gap-2 border-2 transition-all border-transparent text-gray-500 hover:text-green-400 hover:border-green-900/50";
+            }
+        }
+
+        function plantSeed(e) {
+            const canvas = document.getElementById('gardenCanvas');
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            // Logic: Planting Good vs Bad
+            if (plantMode === 'good') {
+                plants.push({ x, y, size: 0, max: 20 + Math.random() * 30, color: `hsl(${120 + Math.random()*40}, 70%, 60%)`, type: 'good' });
+                reputation = Math.min(100, reputation + 5);
+            } else {
+                plants.push({ x, y, size: 0, max: 15 + Math.random() * 20, color: '#ff3333', type: 'bad' });
+                reputation = Math.max(0, reputation - 15); // Negativity hurts more!
+            }
+            
+            updateRepUI();
+            animateGarden();
+        }
+
+        function updateRepUI() {
+            const bar = document.getElementById('rep-bar');
+            const text = document.getElementById('rep-text');
+            
+            bar.style.width = reputation + '%';
+            
+            // Color shift based on score
+            if (reputation > 75) {
+                bar.style.backgroundColor = '#00ff41'; // Bright Green
+                text.innerText = "Status: Excellent";
+                text.className = "text-xs text-right mt-1 text-green-400 font-bold";
+            } else if (reputation > 40) {
+                bar.style.backgroundColor = '#fcee0a'; // Yellow
+                text.innerText = "Status: Neutral";
+                text.className = "text-xs text-right mt-1 text-yellow-400";
+            } else {
+                bar.style.backgroundColor = '#ff003c'; // Red
+                text.innerText = "Status: COMPROMISED";
+                text.className = "text-xs text-right mt-1 text-red-500 font-bold animate-pulse";
+            }
+        }
+
+        function animateGarden() {
+            const canvas = document.getElementById('gardenCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            ctx.fillStyle = 'rgba(0,0,0,0.1)'; // Trail effect
+            ctx.fillRect(0,0,canvas.width, canvas.height);
+
+            let growing = false;
+            plants.forEach(p => {
+                if(p.size < p.max) {
+                    p.size += 0.5;
+                    growing = true;
+                }
+                
+                // Draw Plant
+                if(p.type === 'good') {
+                    // Flower
+                    ctx.beginPath();
+                    ctx.fillStyle = p.color;
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+                    ctx.fill();
+                    // Stem
+                    ctx.beginPath();
+                    ctx.strokeStyle = 'green';
+                    ctx.lineWidth = 2;
+                    ctx.moveTo(p.x, canvas.height);
+                    ctx.lineTo(p.x, p.y);
+                    ctx.stroke();
+                } else {
+                    // Weed (Spiky)
+                    ctx.beginPath();
+                    ctx.fillStyle = p.color;
+                    ctx.moveTo(p.x, p.y - p.size);
+                    ctx.lineTo(p.x + p.size, p.y + p.size);
+                    ctx.lineTo(p.x - p.size, p.y + p.size);
+                    ctx.fill();
+                    // Stem (Gnarly)
+                    ctx.beginPath();
+                    ctx.strokeStyle = '#880000';
+                    ctx.lineWidth = 3;
+                    ctx.moveTo(p.x, canvas.height);
+                    ctx.lineTo(p.x + (Math.random()*4-2), p.y);
+                    ctx.stroke();
+                }
+            });
+
+            if(growing) {
+                requestAnimationFrame(animateGarden);
+            }
+        }
+        
+        function drawGarden() {
+            const canvas = document.getElementById('gardenCanvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0,0,canvas.width, canvas.height);
+        }
+
+    </script>
+</body>
+</html>
